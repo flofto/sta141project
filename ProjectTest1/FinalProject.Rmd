@@ -1,0 +1,432 @@
+---
+title: "STA141ProjectTest"
+author: "Frank Lofton"
+date: "2023-6-12"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(Matrix)
+library(plyr)
+library(MASS)
+library(caret)
+library(knitr)
+library(tidyverse) 
+library(magrittr)   
+library(dplyr)  
+library(ggplot2)
+```
+
+```{r include=FALSE}
+#Code to inport data
+setwd("C:/Users/fjlof/OneDrive/Desktop/STA141A Project/sessions") 
+session=list()
+for(i in 1:18){
+  session[[i]]=readRDS(paste('session',i,'.rds',sep=''))}
+setwd("C:/Users/fjlof/OneDrive/Desktop/STA141A Project/test") 
+test=list()
+for(i in 1:2){
+  test[[i]]=readRDS(paste('test',i,'.rds',sep=''))}
+```
+
+```{r include=FALSE}
+#Code used to append session data to make every thing else done in the project work (I spent a verrrrrrryyy long time on this stuff)
+for (i in 1:18) {
+  session[[i]]$spksarea=session[[i]]$spks
+  k=1
+  l = length(session[[i]]$contrast_left[])
+  while (k <= l) {
+    n=1
+    a=session[[i]]$spks[[k]][,n]
+    while (n <= 40) { 
+    a=a+session[[i]]$spks[[k]][,n]
+    n=n+1
+    }
+    session[[i]]$spksarea[[k]]=a
+    k=k+1
+  }
+}
+```
+``` {r include=FALSE}
+for (i in 1:18){
+  a=session[[i]]$spksarea[[1]]
+  l=length(session[[i]]$feedback_type)-1
+  n=1
+  while (n <= l) {
+    n=n+1
+    a = a+session[[i]]$spksarea[[n]]
+    }
+  session[[i]]$spksareacom = a
+  i=i+1
+  }
+```
+``` {r include=FALSE}
+s=1
+for (s in 1:18){
+n=length(session[[s]]$feedback_type)
+a=c(1:n)
+i = 1
+  while (i <= n) {
+    a[i]=Reduce("+",session[[s]]$spks[[i]])
+    i=i+1
+  }
+session[[s]]$spkscom=a
+s=s+1
+}
+```
+``` {r include=FALSE}
+s=1
+for (s in 1:18){
+n=length(session[[s]]$feedback_type)
+a=c(1:n)
+i = 1
+  while (i <= n) {
+    a[i]=Reduce("+",session[[s]]$spks[[i]])
+    i=i+1
+  }
+session[[s]]$rootspkscom=a
+s=s+1
+}
+```
+``` {r include=FALSE}
+for (i in 1:18) {
+  session[[i]]$rootspks=session[[i]]$spks
+  k=1
+  l = length(session[[i]]$contrast_left[])
+  while (k <= l) {
+    n=1
+    a=session[[i]]$spks[[k]][,n]
+    while (n <= 40) { 
+    a=a+session[[i]]$spks[[k]][,n]
+    n=n+1
+    }
+    session[[i]]$rootspks[[k]]=a
+    k=k+1
+  }
+}
+```
+``` {r include=FALSE}
+i=1
+for (i in 1:18) {
+c=session[[i]]$brain_area
+b=data.frame(session[[i]]$spksarea)
+colnames(b)=NULL
+b=t(b)
+b=data.frame(b)
+n=1
+l =length(c)
+while (n <= l){
+if (c[n] != "root"){b[n] = rep(0,length(session[[i]]$feedback_type))
+n=n+1}
+  else{
+n=n+1}}
+session[[i]]$rootspks=b
+i=i+1
+}
+```
+``` {r include=FALSE}
+i=1
+for (i in 1:18) {
+  n=1
+  a=session[[i]]$rootspks[[n]]
+  while (n<=length(session[[i]]$brain_area)) {
+  a=a+session[[i]]$rootspks[[n]]
+  n=n+1
+  }
+  session[[i]]$spkrootcom=a
+  i=i+1
+}
+```
+``` {r include=FALSE}
+for (i in 1:18){
+  session[[i]]$finalspkrootcom=session[[i]]$spkrootcom/length(which(session[[i]]$brain_area == "root"))
+  i=i+1
+}
+
+for (i in 1:2) {
+  test[[i]]$spksarea=test[[i]]$spks
+  k=1
+  l = length(test[[i]]$contrast_left[])
+  while (k <= l) {
+    n=1
+    a=test[[i]]$spks[[k]][,n]
+    while (n <= 40) { 
+    a=a+test[[i]]$spks[[k]][,n]
+    n=n+1
+    }
+    test[[i]]$spksarea[[k]]=a
+    k=k+1
+  }
+}
+
+i=1
+for (i in 1:2) {
+c=test[[i]]$brain_area
+b=data.frame(test[[i]]$spksarea)
+colnames(b)=NULL
+b=t(b)
+b=data.frame(b)
+n=1
+l =length(c)
+while (n <= l){
+if (c[n] != "root"){b[n] = rep(0,length(test[[i]]$feedback_type))
+n=n+1}
+  else{
+n=n+1}}
+test[[i]]$rootspks=b
+i=i+1
+}
+
+i=1
+for (i in 1:2) {
+  n=1
+  a=test[[i]]$rootspks[[n]]
+  while (n<=length(test[[i]]$brain_area)) {
+  a=a+test[[i]]$rootspks[[n]]
+  n=n+1
+  }
+  test[[i]]$spkrootcom=a
+  i=i+1
+}
+
+for (i in 1:2){
+  test[[i]]$finalspkrootcom=test[[i]]$spkrootcom/length(which(test[[i]]$brain_area == "root"))
+  i=i+1
+}
+
+i=1
+for (i in 1:18) {
+  session[[i]]$nurspkavg=((sum(session[[i]]$spksareacom)/length(session[[i]]$brain_area))/length(session[[i]]$feedback_type))
+  i=i+1
+} 
+
+i=1
+for (i in 1:18) {
+  session[[i]]$avgspks=session[[i]]$spkscom/length(session[[i]]$brain_area)
+  i=i+1}
+```
+
+
+
+
+(i) Describe the data structures across sessions (e.g., number of neurons, number of trials, stimuli conditions, feedback types)
+
+```{r echo=FALSE}
+n.session=length(session)
+charted <- tibble(
+  sessionnum =c(1:18),
+  mouse_names = rep('name',n.session),
+  date_exp =rep('dt',n.session),
+  n_brain_area = rep(0,n.session),
+  n_neurons = rep(0,n.session),
+  nspka = rep(0,n.session),
+  n_trials = rep(0,n.session),
+  success_rate = rep(0,n.session))
+charted[,1]=c(1:18)
+for(i in 1:n.session){
+  len = session[[i]]
+  charted[i,2]=len$mouse_name
+  charted[i,3]=len$date_exp
+  charted[i,4]=length(unique(len$brain_area))
+  charted[i,5]=dim(len$spks[[1]])[1]
+  charted[i,6]=session[[i]]$nurspkavg
+  charted[i,7]=length(len$feedback_type)
+  charted[i,8]=mean(len$feedback_type+1)/2}
+kable(charted, format = "html", table.attr = "class='table'",digits = 2, col.names = c("Session Number", "Mouse Names", "Experiment Date", "Number of Brain Areas", "Number of Neurons","Average Neural Spikes Per Neuron", "Number of Trials", "Trial Success Rate"))
+```
+
+
+The data structures share the same format, all said the data we are using consists of 18 sessions with 8 elements. mouse_name, The name of mouse out of the 4. date_exp, The date of the experiment for that session which range from 2016-12-14 to 2017-12-11. contrast_left and contrast_right which contain the level of stimuli on each side for each trial with values consisting one of (0, .25, .5, 1). feedback_type which tells if the mouse reacted correctly (1) or incorrectly (-1) based the relative contrasts of the contrast stimulus levels. spks which gives the number of spikes in each examined neuron. time gives the time data that corresponds with neuron spike. And brain_area gives the area of the brain that each of the observed neurons was in. Across sessions the elements vary. The number of neurons in each session vary from 474 in session 16 to 1769 in session 4 with with the average number across sessions being 905. The number of trials also varied across sessions with 114 Trials in session 1 and 447 in session 10, with of an overall average of 282 trials in each session. Between sessions the average number of neural spikes within the session. The Trial success rate also changes from session to session, appearing to show a general increase in the success rate in consecutive sessions.
+
+(ii) Explore the neural activities during each trial
+
+```{r echo=FALSE}
+boxplot(session[[12]]$spksareacom ~ session[[12]]$brain_area,ylab = "Total Neural Activity",xlab = "Brain Area")
+```
+
+We can see that with in Session 3 between trials the Neural Spikes had different amounts of neural spikes between the different areas of the brain, with some brain areas showing vastly different distributions of neural spikes.
+
+```{r echo=FALSE, warning=FALSE}
+Total_Contrast=session[[12]]$contrast_left+session[[12]]$contrast_right
+qplot(seq_along(session[[12]]$spkscom), session[[12]]$spkscom, colour = Total_Contrast,ylab = "Total Neural Activity",xlab = "Trial")
+```
+
+Based on the plot the sum of the contrasts within a trial appear to correlate with higher total neural activity within that trial.
+
+
+
+
+(iii) explore the changes across trials
+
+Across trials the contrast_left and contrast_right variables are changed between the values 0, .25, .5, and 1. This affects how the mouse being tested goes about succeeding in the trial.
+
+```{r echo=FALSE}
+r=c(2:18)
+Left_Contrast=c(session[[1]]$contrast_left)
+for (i in r[-length(r)]) {
+  i=i+1
+  Left_Contrast=c(Left_Contrast,session[[i]]$contrast_left)
+  }
+Right_Contrast=c(session[[1]]$contrast_right)
+for (i in r[-length(r)]) {
+  i=i+1
+  Right_Contrast=c(Right_Contrast,session[[i]]$contrast_right)
+  }
+Total_Feedback=c(session[[1]]$feedback_type)
+for (i in r[-length(r)]) {
+  i=i+1
+  Total_Feedback=c(Total_Feedback,session[[i]]$feedback_type)
+  }
+
+anova(lm(Total_Feedback ~ Left_Contrast*Right_Contrast))
+lm(Total_Feedback ~  Left_Contrast*Right_Contrast)
+```
+
+As can be seen from the anova, the product of the contrasts has a statistically significant negative correlation with the feedback results of the trial. In the context of the experiment, this can possibly be due to having higher stimulus values on both sides simultaneously making it harder for the mouse to react correctly.
+
+
+(iv) explore homogeneity and heterogeneity across sessions and mice
+
+```{r echo=FALSE}
+avgneurspikes=c(session[[1]]$nurspkavg)
+for (i in 1:17){
+avgneurspikes=c(avgneurspikes,session[[i+1]]$nurspkavg)}
+plot(avgneurspikes, xlab = "Session Number",ylab="Average Neural Spikes Per Neuron During Trial")
+```
+
+As can be seen the average number of neural spikes per neuron changes between sessions. This can reasonably be attributed to the fact that different sessions collected data for different neurons which can be seen in the fact that different brain areas appear in the brain_area data for different sessions. 
+
+```{r echo=FALSE}
+n_brain_area=unique(session[[1]]$brain_area)
+i=2
+while (i <= 18){
+    n_brain_area=c(n_brain_area,unique(session[[i]]$brain_area))
+    i=i+1}
+table(n_brain_area)
+```
+
+The brain areas being tested vary from session to session with no specific brain area being tested in every session. However the root brain area does appear to be used in 16 out of the 18 sessions, which could be useful as just using these neurons could limit the difference in average neural spikes per neuron between sessions, making different sessions more comparable to each other.
+
+
+Part II: Data integration
+
+To begin the process of data integration I reduced the "spks" data from a large list of arrays to instead be an array that had the dimensions number of trials by number of neurons. This made working with data significantly more manageable and meaningful as now we can see overall how a specific neuron reacted during a trial.
+
+Based on some of my finding in part 1 of the project I decided that specifically using the neuron spike data from neurons that were in the "root" brain area may be beneficial as most of the sessions tested nurons within this brain area, and by narrowing down which neurons were tested I could reduce the differences that resulted from neurons that were not tested through out sessions.
+
+I then took the data from the "root" neurons and created lists within each session consisting of the average number of root neuron spikes within each trail. In doing this I also decided to remove session 3 and 15 because they were the only sessions that didn't test the "root" brain area. This new "root" specific data had less differences between sessions then just using the average total spikes per trial, although it was not perfect.
+
+
+```{r echo=FALSE}
+r=c(2:18)
+c=c(session[[1]]$avgspks)
+for (i in r[-length(r)]) {
+  i=i+1
+  c=c(c,session[[i]]$avgspks)
+  }
+b=c(session[[1]]$feedback_type)
+for (i in r[-length(r)]) {
+  i=i+1
+  b=c(b,session[[i]]$feedback_type)
+  }
+qplot(seq_along(c), c, colour = b, xlab = "Trial", ylab = "Average Neural Spikes")
+
+r=c(1,2,4,5,6,7,8,9,10,11,12,13,14,16,17,18)
+c=c(session[[1]]$finalspkrootcom)
+for (i in r[-length(r)]) {
+  i=i+1
+  c=c(c,session[[i]]$finalspkrootcom)
+  }
+b=c(session[[1]]$feedback_type)
+for (i in r[-length(r)]) {
+  i=i+1
+  b=c(b,session[[i]]$feedback_type)
+  }
+qplot(seq_along(c), c, colour = b,xlab = "Trial", ylab = "Average root Neural Spikes")
+```
+
+To further improve the differences between sessions, and with the fact that now all spike data came from one part of the brain I decided to scale each individual session cluster as I merged it, which further reduced the variance between different session. 
+
+```{r echo=FALSE}
+r=c(2,4,5,6,7,8,9,10,11,12,13,14,16,17,18)
+c=c(scale(session[[1]]$finalspkrootcom))
+for (i in r[-length(r)]) {
+  i=i+1
+  c=c(c,scale(session[[i]]$finalspkrootcom))
+  }
+b=c(session[[1]]$feedback_type)
+for (i in r[-length(r)]) {
+  i=i+1
+  b=c(b,session[[i]]$feedback_type)
+  }
+qplot(seq_along(c), c, colour = b,xlab = "Trial", ylab = "Scaled Average root Neural Spikes")
+```
+
+
+Part III: Model training and prediction
+
+
+```{r echo=FALSE}
+r=c(4,5,6,7,8,9,10,11,12,13,14,16,17)
+Avg_Root_Spikes=c(scale(session[[2]]$finalspkrootcom))
+for (i in r[-length(r)]) {
+  i=i+1
+  Avg_Root_Spikes=c(Avg_Root_Spikes,scale(session[[i]]$finalspkrootcom))
+  }
+Left_Contrast=c(session[[2]]$contrast_left)
+for (i in r[-length(r)]) {
+  i=i+1
+  Left_Contrast=c(Left_Contrast,session[[i]]$contrast_left)
+  }
+Right_Contrast=c(session[[2]]$contrast_right)
+for (i in r[-length(r)]) {
+  i=i+1
+  Right_Contrast=c(Right_Contrast,session[[i]]$contrast_right)
+  }
+Total_Feedback=c(session[[2]]$feedback_type)
+for (i in r[-length(r)]) {
+  i=i+1
+  Total_Feedback=c(Total_Feedback,session[[i]]$feedback_type)
+  }
+
+anova(lm(Total_Feedback ~  Avg_Root_Spikes+Left_Contrast*Right_Contrast))
+modeldata=data.frame(Avg_Root_Spikes,Left_Contrast,Right_Contrast,Total_Feedback)
+```
+
+Based on the Anova of the Linear Model you can see that the amount of neural spikes within the "root" area of the brain as well as the product of the contrasts had statistically significant correlation with how the outcome of the trial was.
+
+```{r include=FALSE}
+Avg_Root_Spikes=c(scale(test[[1]]$finalspkrootcom),scale(test[[2]]$finalspkrootcom))
+Left_Contrast=c(test[[1]]$contrast_left,test[[2]]$contrast_left)
+Right_Contrast=c(test[[1]]$contrast_right,test[[2]]$contrast_right)
+Total_Feedback=c(test[[1]]$feedback_type,test[[2]]$feedback_type)
+testdata=data.frame(Avg_Root_Spikes,Left_Contrast,Right_Contrast,Total_Feedback)
+```
+
+
+```{r include=FALSE}
+train = modeldata[c(1:3994),]
+test1 = testdata[c(1:100),]
+test2 = testdata[c(101:200),]
+model <- lda(Total_Feedback ~ Avg_Root_Spikes + Left_Contrast*Right_Contrast, data=train)
+predictresults1 <- predict(model, test1 )
+predictresults2 <- predict(model, test2 )
+confusion1 = confusionMatrix(data=predictresults1$class, reference = as.factor(test1$Total_Feedback))
+confusion2 = confusionMatrix(data=predictresults2$class, reference = as.factor(test2$Total_Feedback))
+```
+
+Results of Session 1 Test Data
+
+```{r echo=FALSE}
+confusion1
+```
+
+Results of Session 18 Test Data
+
+```{r echo=FALSE}
+confusion2
+```
+
+Regarding the Predictive Model and its results, just the accuracy rate on its own is misleading. Although my model can claim to be 73% accurate for both sets of test data, this is almost entirely due to predicting the outcome to be 1 for every trial, with the exception of one -1 trial that it correctly predicted in Session 1.
+Clearly there is room for improvement within the model still, Ideally a way of further differentiating trials with feedback results of -1.
+
